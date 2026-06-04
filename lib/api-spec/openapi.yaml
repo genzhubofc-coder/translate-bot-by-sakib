@@ -1,0 +1,771 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Telegram Translation Bot Management API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Admin authentication
+  - name: users
+    description: Telegram bot user management
+  - name: translations
+    description: Translation log management
+  - name: stats
+    description: Statistics and analytics
+  - name: settings
+    description: Bot settings management
+  - name: admins
+    description: Admin account management
+  - name: bot
+    description: Telegram bot webhook
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # Auth
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current admin
+      responses:
+        "200":
+          description: Current admin info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # Bot Users
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all bot users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: banned
+          in: query
+          schema:
+            type: ["boolean", "null"]
+      responses:
+        "200":
+          description: Paginated list of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: User deleted
+
+  /users/{id}/ban:
+    patch:
+      operationId: banUser
+      tags: [users]
+      summary: Ban a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User banned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/unban:
+    patch:
+      operationId: unbanUser
+      tags: [users]
+      summary: Unban a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User unbanned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # Translations
+  /translations:
+    get:
+      operationId: listTranslations
+      tags: [translations]
+      summary: List all translations
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: direction
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: ["bn-en", "en-bn", null]
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: dateFrom
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: dateTo
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Paginated list of translations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranslationListResponse"
+
+  /translations/export:
+    get:
+      operationId: exportTranslations
+      tags: [translations]
+      summary: Export translations as CSV
+      parameters:
+        - name: direction
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: dateFrom
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: dateTo
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # Stats
+  /stats/overview:
+    get:
+      operationId: getStatsOverview
+      tags: [stats]
+      summary: Get overall statistics overview
+      responses:
+        "200":
+          description: Overview stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsOverview"
+
+  /stats/daily:
+    get:
+      operationId: getDailyStats
+      tags: [stats]
+      summary: Get daily statistics for the last 30 days
+      responses:
+        "200":
+          description: Daily stats array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DayStat"
+
+  /stats/weekly:
+    get:
+      operationId: getWeeklyStats
+      tags: [stats]
+      summary: Get weekly statistics for the last 12 weeks
+      responses:
+        "200":
+          description: Weekly stats array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeekStat"
+
+  /stats/monthly:
+    get:
+      operationId: getMonthlyStats
+      tags: [stats]
+      summary: Get monthly statistics for the last 12 months
+      responses:
+        "200":
+          description: Monthly stats array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthStat"
+
+  /stats/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [stats]
+      summary: Get recent translation activity feed
+      responses:
+        "200":
+          description: Recent activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # Settings
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get all bot settings
+      responses:
+        "200":
+          description: Bot settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update bot settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotSettingsInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotSettings"
+
+  # Admins
+  /admins:
+    get:
+      operationId: listAdmins
+      tags: [admins]
+      summary: List admin accounts
+      responses:
+        "200":
+          description: List of admins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Admin"
+    post:
+      operationId: createAdmin
+      tags: [admins]
+      summary: Create a new admin account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminInput"
+      responses:
+        "201":
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+
+  /admins/{id}:
+    delete:
+      operationId: deleteAdmin
+      tags: [admins]
+      summary: Delete an admin account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Admin deleted
+
+  /admins/{id}/password:
+    patch:
+      operationId: updateAdminPassword
+      tags: [admins]
+      summary: Update admin password
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordUpdate"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Bot Webhook
+  /bot/webhook:
+    post:
+      operationId: botWebhook
+      tags: [bot]
+      summary: Telegram webhook endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /bot/status:
+    get:
+      operationId: getBotStatus
+      tags: [bot]
+      summary: Get bot status and info
+      responses:
+        "200":
+          description: Bot status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStatus"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    # Auth
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+
+    Admin:
+      type: object
+      required: [id, username, createdAt]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        createdAt:
+          type: string
+
+    AdminInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 6
+
+    PasswordUpdate:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 6
+
+    # Users
+    User:
+      type: object
+      required: [id, telegramId, createdAt, totalTranslations, totalMessages, isBanned]
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        username:
+          type: ["string", "null"]
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        lastActive:
+          type: ["string", "null"]
+        totalTranslations:
+          type: integer
+        totalMessages:
+          type: integer
+        isBanned:
+          type: boolean
+
+    UserListResponse:
+      type: object
+      required: [users, total, page, limit]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # Translations
+    Translation:
+      type: object
+      required: [id, originalText, translatedText, direction, createdAt, success]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        telegramUserId:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        originalText:
+          type: string
+        translatedText:
+          type: string
+        direction:
+          type: string
+          enum: ["bn-en", "en-bn"]
+        createdAt:
+          type: string
+        success:
+          type: boolean
+        chatType:
+          type: ["string", "null"]
+
+    TranslationListResponse:
+      type: object
+      required: [translations, total, page, limit]
+      properties:
+        translations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Translation"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # Stats
+    StatsOverview:
+      type: object
+      required: [totalUsers, activeTodayUsers, totalMessages, totalTranslations, successRate, bnToEnCount, enToBnCount, bannedUsers]
+      properties:
+        totalUsers:
+          type: integer
+        activeTodayUsers:
+          type: integer
+        totalMessages:
+          type: integer
+        totalTranslations:
+          type: integer
+        successRate:
+          type: number
+        bnToEnCount:
+          type: integer
+        enToBnCount:
+          type: integer
+        bannedUsers:
+          type: integer
+
+    DayStat:
+      type: object
+      required: [date, messages, translations, users]
+      properties:
+        date:
+          type: string
+        messages:
+          type: integer
+        translations:
+          type: integer
+        users:
+          type: integer
+
+    WeekStat:
+      type: object
+      required: [week, messages, translations, users]
+      properties:
+        week:
+          type: string
+        messages:
+          type: integer
+        translations:
+          type: integer
+        users:
+          type: integer
+
+    MonthStat:
+      type: object
+      required: [month, messages, translations, users]
+      properties:
+        month:
+          type: string
+        messages:
+          type: integer
+        translations:
+          type: integer
+        users:
+          type: integer
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        username:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    # Settings
+    BotSettings:
+      type: object
+      required: [translationEnabled, loggingEnabled, maintenanceMode, botToken, rateLimitPerMinute]
+      properties:
+        translationEnabled:
+          type: boolean
+        loggingEnabled:
+          type: boolean
+        maintenanceMode:
+          type: boolean
+        botToken:
+          type: string
+        rateLimitPerMinute:
+          type: integer
+
+    BotSettingsInput:
+      type: object
+      properties:
+        translationEnabled:
+          type: boolean
+        loggingEnabled:
+          type: boolean
+        maintenanceMode:
+          type: boolean
+        botToken:
+          type: string
+        rateLimitPerMinute:
+          type: integer
+
+    TelegramUpdate:
+      type: object
+      additionalProperties: true
+
+    # Bot
+    BotStatus:
+      type: object
+      required: [running, botUsername, uptime]
+      properties:
+        running:
+          type: boolean
+        botUsername:
+          type: ["string", "null"]
+        uptime:
+          type: integer
